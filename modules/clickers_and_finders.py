@@ -73,14 +73,20 @@ def boolean_button_click(driver: WebDriver, actions: ActionChains, text: str) ->
     Tries to click on the boolean button with the given `text` text.
     '''
     try:
-        list_container = driver.find_element(By.XPATH, './/h3[normalize-space()="'+text+'"]/ancestor::fieldset')
-        button = list_container.find_element(By.XPATH, './/input[@role="switch"]')
-        scroll_to_view(driver, button)
-        actions.move_to_element(button).click().perform()
+        try:
+            list_container = driver.find_element(By.XPATH, './/h3[normalize-space()="'+text+'"]/ancestor::fieldset')
+            button = list_container.find_element(By.XPATH, './/input[@role="switch"]')
+            scroll_to_view(driver, button)
+            actions.move_to_element(button).click().perform()
+        except Exception:
+            # Fallback for pill buttons
+            button = driver.find_element(By.XPATH, f"//button[normalize-space(.)='{text}']")
+            scroll_to_view(driver, button)
+            driver.execute_script("arguments[0].click();", button)
         buffer(click_gap)
     except Exception as e:
         print_lg("Click Failed! Didn't find '"+text+"'")
-        # print_lg(e)
+        print_lg(e)
 
 # Find functions
 def find_by_class(driver: WebDriver, class_name: str, time: float=5.0) -> WebElement | Exception:

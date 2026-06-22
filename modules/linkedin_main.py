@@ -341,10 +341,14 @@ def get_job_main_details(job: WebElement, blacklisted_companies: set, rejected_j
                 print_lg(f'Already applied to "{title} | {company}" job. Job ID: {job_id}!')
         except: pass
         try: 
-            if not skip: job_details_button.click()
+            if not skip: 
+                try:
+                    job_details_button.click()
+                except Exception:
+                    driver.execute_script("arguments[0].click();", job_details_button)
         except Exception as e:
             print_lg(f'Failed to click "{title} | {company}" job on details button. Job ID: {job_id}!') 
-            # print_lg(e)
+            print_lg(e)
             discard_job()
             # job_details_button.click() # To pass the error outside
         buffer(click_gap)
@@ -771,12 +775,53 @@ def answer_questions(modal: WebElement, questions_list: set, work_location: str,
 
 def external_apply(pagination_element: WebElement, job_id: str, job_link: str, resume: str, date_listed, application_link: str, screenshot_name: str) -> tuple[bool, str, int]:
     '''
-    Function to save external job application links without opening new tabs.
+    Function to save external job application links by opening them.
     '''
     global tabs_count, dailyEasyApplyLimitReached
     try:
-        print_lg('External job detected. Saving LinkedIn link to company_website_jobs.csv without opening new tab.')
-        return False, job_link, tabs_count
+        apply_btn = try_xp(driver, ".//button[contains(@class,'jobs-apply-button')]", False)
+        if not apply_btn:
+            apply_btn = try_xp(driver, ".//a[contains(@class,'jobs-apply-button')]", False)
+        
+        if apply_btn:
+            original_window = driver.current_window_handle
+            num_windows_before = len(driver.window_handles)
+            original_url = driver.current_url
+            try:
+                apply_btn.click()
+            except Exception:
+                driver.execute_script("arguments[0].click();", apply_btn)
+            buffer(2) # wait for tab to open
+            
+            opened_new_tab = len(driver.window_handles) > num_windows_before
+            
+            if opened_new_tab:
+                # Switch to new tab
+                for window_handle in driver.window_handles:
+                    if window_handle != original_window:
+                        driver.switch_to.window(window_handle)
+                        break
+            
+            # wait a bit for redirect
+            buffer(3)
+            external_url = driver.current_url
+            
+            if opened_new_tab:
+                # Close the new tab
+                driver.close()
+                # Switch back
+                driver.switch_to.window(original_window)
+            else:
+                # If navigated in the same tab, just go back
+                if driver.current_url != original_url:
+                    driver.back()
+            
+            print_lg(f'External job detected. Extracted company URL: {external_url}')
+            return False, external_url, tabs_count
+        else:
+            print_lg('External job detected, but Apply button not found. Saving LinkedIn link.')
+            return False, job_link, tabs_count
+            
     except Exception as e:
         print_lg("Failed to process external job!")
         failed_job(job_id, job_link, resume, date_listed, "Problem handling external job", e, application_link, screenshot_name)

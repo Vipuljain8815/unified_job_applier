@@ -102,6 +102,12 @@ def process_job_page(driver):
                     driver.switch_to.window(handle)
                     break
 
+            # Check if it's an external URL
+            if "naukri.com" not in driver.current_url:
+                external_url = driver.current_url
+                print_lg(f"External company site detected: {external_url}")
+                return False, external_url
+
             answer_questions(driver)
             
             # Try to submit
@@ -111,13 +117,14 @@ def process_job_page(driver):
                 buffer(click_gap)
             
             print_lg("Successfully completed apply flow.")
-            return True
+            return True, None
         else:
             print_lg("Apply button not found or it's a company site application.")
-            return False
+            external_url = driver.current_url if "naukri.com" not in driver.current_url else None
+            return False, external_url
     except Exception as e:
         print_lg(f"Error during application: {e}")
-        return False
+        return False, None
 
 def apply_to_jobs(driver, max_pages, applied_jobs_file):
     print_lg("Starting to iterate over job listings...")
@@ -197,14 +204,15 @@ def apply_to_jobs(driver, max_pages, applied_jobs_file):
                             break
                     
                     # Attempt to apply
-                    success = process_job_page(driver)
+                    success, external_url = process_job_page(driver)
                     if success:
                         save_applied_job_id(applied_jobs_file, job_id, job_title, company, job_url)
                         applied_job_ids.add(job_id)
                     else:
-                        if job_url not in saved_company_urls:
-                            save_company_website_job("company_website_jobs.csv", job_id, job_title, company, job_url)
-                            saved_company_urls.add(job_url)
+                        url_to_save = external_url if external_url else job_url
+                        if url_to_save not in saved_company_urls:
+                            save_company_website_job("company_website_jobs.csv", job_id, job_title, company, url_to_save)
+                            saved_company_urls.add(url_to_save)
                     
                     # Close all tabs except the original window and switch back
                     for handle in driver.window_handles:
