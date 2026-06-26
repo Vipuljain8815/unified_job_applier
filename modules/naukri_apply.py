@@ -102,6 +102,12 @@ def process_job_page(driver):
                     driver.switch_to.window(handle)
                     break
 
+            # Wait for redirect
+            wait_time = 0
+            while "naukri.com" in driver.current_url and wait_time < 15:
+                buffer(1)
+                wait_time += 1
+
             # Check if it's an external URL
             if "naukri.com" not in driver.current_url:
                 external_url = driver.current_url
@@ -130,7 +136,7 @@ def apply_to_jobs(driver, max_pages, applied_jobs_file):
     print_lg("Starting to iterate over job listings...")
     
     applied_job_ids = get_applied_job_ids(applied_jobs_file)
-    saved_company_urls = get_saved_company_urls("company_website_jobs.csv")
+    saved_company_urls = get_saved_company_urls("all excels/company_website_jobs.csv")
     blacklisted_companies = set(companies)
     
     for page in range(1, max_pages + 1):
@@ -189,7 +195,7 @@ def apply_to_jobs(driver, max_pages, applied_jobs_file):
                     if "naukri.com/job-listings" not in job_url:
                         print_lg(f"Skipping {company} - Company website job.")
                         if job_url not in saved_company_urls:
-                            save_company_website_job("company_website_jobs.csv", job_id, job_title, company, job_url)
+                            save_company_website_job("all excels/company_website_jobs.csv", job_id, job_title, company, job_url)
                             saved_company_urls.add(job_url)
                         continue
                     
@@ -209,10 +215,10 @@ def apply_to_jobs(driver, max_pages, applied_jobs_file):
                         save_applied_job_id(applied_jobs_file, job_id, job_title, company, job_url)
                         applied_job_ids.add(job_id)
                     else:
-                        url_to_save = external_url if external_url else job_url
-                        if url_to_save not in saved_company_urls:
-                            save_company_website_job("company_website_jobs.csv", job_id, job_title, company, url_to_save)
-                            saved_company_urls.add(url_to_save)
+                        if external_url and "naukri.com" not in external_url:
+                            if external_url not in saved_company_urls:
+                                save_company_website_job("all excels/company_website_jobs.csv", job_id, job_title, company, external_url)
+                                saved_company_urls.add(external_url)
                     
                     # Close all tabs except the original window and switch back
                     for handle in driver.window_handles:

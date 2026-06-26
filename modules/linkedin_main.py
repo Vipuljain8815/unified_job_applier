@@ -30,13 +30,6 @@ csv.field_size_limit(1000000)  # Set to 1MB instead of default 131KB
 from random import choice, shuffle, randint
 from datetime import datetime
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support.select import Select
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, NoSuchWindowException, ElementNotInteractableException, WebDriverException
-
 from config.personals import *
 from config.questions import *
 from config.search import *
@@ -189,7 +182,7 @@ def get_applied_job_ids() -> set[str]:
         print_lg(f"The CSV file '{file_name}' does not exist.")
         
     try:
-        with open("company_website_jobs.csv", 'r', encoding='utf-8') as file:
+        with open("all excels/company_website_jobs.csv", 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
             for row in reader:
                 job_ids.add(row[0])
@@ -803,7 +796,10 @@ def external_apply(pagination_element: WebElement, job_id: str, job_link: str, r
                         break
             
             # wait a bit for redirect
-            buffer(3)
+            wait_time = 0
+            while "linkedin.com" in driver.current_url and wait_time < 15:
+                buffer(1)
+                wait_time += 1
             external_url = driver.current_url
             
             if opened_new_tab:
@@ -903,7 +899,7 @@ def log_website_job(job_id: str, title: str, company: str, job_link: str) -> Non
     try:
         existing_links = set()
         try:
-            with open("company_website_jobs.csv", mode='r', encoding='utf-8') as f:
+            with open("all excels/company_website_jobs.csv", mode='r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     existing_links.add(row.get('Job Link', '').strip())
@@ -914,7 +910,7 @@ def log_website_job(job_id: str, title: str, company: str, job_link: str) -> Non
             print_lg(f"Duplicate URL found, skipping logging for: {job_link}")
             return
 
-        with open("company_website_jobs.csv", mode='a', newline='', encoding='utf-8') as csv_file:
+        with open("all excels/company_website_jobs.csv", mode='a', newline='', encoding='utf-8') as csv_file:
             fieldnames = ['Job ID', 'Title', 'Company', 'Job Link']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             if csv_file.tell() == 0: writer.writeheader()
@@ -1145,8 +1141,11 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                         # Case 2: Apply externally (Website Job)
                         failed, new_application_link, tabs_count = external_apply(pagination_element, job_id, job_link, resume, date_listed, application_link, screenshot_name)
                         link_to_log = new_application_link if (new_application_link and new_application_link != "Easy Applied" and new_application_link != "Unknown") else job_link
-                        log_website_job(job_id, title, company, link_to_log)
-                        print_lg(f'Logged website job "{title} | {company}". Job ID: {job_id}')
+                        if "linkedin.com" not in link_to_log:
+                            log_website_job(job_id, title, company, link_to_log)
+                            print_lg(f'Logged website job "{title} | {company}". Job ID: {job_id}')
+                        else:
+                            print_lg(f'Failed to extract company website URL for "{title} | {company}". Skipping logging. Job ID: {job_id}')
                         external_jobs_count += 1
                         applied_jobs.add(job_id)
                         current_count += 1

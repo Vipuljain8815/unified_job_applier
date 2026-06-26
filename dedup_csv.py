@@ -24,5 +24,5 @@ def remove_duplicates(filepath):
             writer.writerow(row)
 
 if __name__ == "__main__":
-    remove_duplicates("/Users/paiteq-mac/Downloads/Unified_Job_Applier/company_website_jobs.csv")
+    remove_duplicates("all excels/company_website_jobs.csv")
     print("Deduplication complete.")

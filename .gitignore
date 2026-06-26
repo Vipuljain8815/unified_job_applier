@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 venv/
 logs/
+
+# Data files
+all excels/

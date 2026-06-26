@@ -28,7 +28,8 @@ def get_applied_jobs():
 
     try:
         jobs = []
-        with open(PATH + 'all_applied_applications_history.csv', 'r', encoding='utf-8') as file:
+        csvPath = os.path.join(PATH, 'all_applied_applications_history.csv')
+        with open(csvPath, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 jobs.append({
@@ -41,7 +42,8 @@ def get_applied_jobs():
                     'External_Job_link': row.get('External Job link', 'N/A'),
                     'Date_Applied': row.get('Date Applied', 'N/A')
                 })
-        return jsonify(jobs)
+        # Limit to the last 1000 jobs to prevent frontend lag
+        return jsonify(jobs[-1000:])
     except FileNotFoundError:
         return jsonify({"error": "No applications history found"}), 404
     except Exception as e:
@@ -63,7 +65,7 @@ def update_applied_date(job_id):
     """
     try:
         data = []
-        csvPath = PATH + 'all_applied_applications_history.csv'
+        csvPath = os.path.join(PATH, 'all_applied_applications_history.csv')
         
         if not os.path.exists(csvPath):
             return jsonify({"error": f"CSV file not found at {csvPath}"}), 404
@@ -99,7 +101,8 @@ def get_sent_emails():
     '''
     try:
         emails = []
-        with open(PATH + 'all_emails_sent_history.csv', 'r', encoding='utf-8') as file:
+        csvPath = os.path.join(PATH, 'all_emails_sent_history.csv')
+        with open(csvPath, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 emails.append({
@@ -110,7 +113,7 @@ def get_sent_emails():
                     'Comment_Added': row.get('Comment Added', 'N/A'),
                     'Status': row.get('Status', 'N/A')
                 })
-        return jsonify(emails)
+        return jsonify(emails[-1000:])
     except FileNotFoundError:
         return jsonify({"error": "No email history found"}), 404
     except Exception as e:
