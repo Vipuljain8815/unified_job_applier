@@ -1076,7 +1076,8 @@ def apply_to_jobs(search_terms: list[str]) -> None:
                             try:
                                 errored = ""
                                 modal = find_by_class(driver, "jobs-easy-apply-modal")
-                                wait_span_click(modal, "Next", 1)
+                                buffer(3)
+                                wait_span_click(modal, "Next", 3)
                                 # if description != "Unknown":
                                 #     resume = create_custom_resume(description)
                                 resume = "Previous resume"
